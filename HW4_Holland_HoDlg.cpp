@@ -6,10 +6,23 @@
 #include "HW4_Holland_Ho.h"
 #include "HW4_Holland_HoDlg.h"
 #include "afxdialogex.h"
+// Include the window socket library
+#include <Windows.h>
+#include <winsock2.h>
+
+// define our ip address as local host
+#define IP_TARGET "127.0.0.1"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+
+// Creating the socket
+SOCKET MakeSocket(WORD wPort) {
+	SOCKET sock = (SOCKET)NULL;
+
+	return sock;
+}
 
 
 // CAboutDlg dialog used for App About
@@ -163,13 +176,11 @@ void CHW4HollandHoDlg::OnBnClickedSend()
 	//AfxMessageBox("Hello World!");
 
 	// To read text from the chat message control
-	
 	CString chatMessage;
 	GetDlgItemText(IDC_EDIT_CHAT, chatMessage);
-
-	CString writeMessage = "testing 1, 2 , 3";
-	SetDlgItemText(IDC_EDIT_CHAT, writeMessage);
-	//SetDlgItemText(IDC_EDIT_SHOW, writeMessage);
+	// Sets the chatMessage to the chatbox and displays it in the read-only
+	SetDlgItemText(IDC_EDIT_CHAT, chatMessage);
+	SetDlgItemText(IDC_EDIT_SHOW, chatMessage);
 	
 }
 
