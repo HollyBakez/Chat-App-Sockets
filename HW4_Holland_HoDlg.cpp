@@ -8,7 +8,8 @@
 #include "afxdialogex.h"
 // Include the window socket library
 #include <Windows.h>
-#include <winsock2.h>
+#include <winsock.h>
+#include <WinSock2.h>
 
 // define our ip address as local host
 #define IP_TARGET "127.0.0.1"
@@ -17,13 +18,29 @@
 #define new DEBUG_NEW
 #endif
 
-// Creating the socket
+// Create Socket Function 
 SOCKET MakeSocket(WORD wPort) {
 	SOCKET sock = (SOCKET)NULL;
+	SOCKADDR_IN Addr = { 0 };
+
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	// if the socket does not exist then throw invalid
+	if (sock == INVALID_SOCKET) {
+		return (SOCKET)NULL;
+	}
+
+	Addr.sin_family = AF_INET;
+	Addr.sin_port = htons(wPort);
+	Addr.sin_addr.s_addr = inet_addr(IP_TARGET);
+
+	if (bind(sock, (SOCKADDR*)&Addr, sizeof(Addr)) == SOCKET_ERROR)
+	{
+		closesocket(sock);
+		return (SOCKET)NULL;
+	}
 
 	return sock;
 }
-
 
 // CAboutDlg dialog used for App About
 
