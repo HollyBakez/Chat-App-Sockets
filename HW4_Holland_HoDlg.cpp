@@ -7,42 +7,51 @@
 #include "HW4_Holland_HoDlg.h"
 #include "afxdialogex.h"
 // Include the window socket library
-#include <Windows.h>
-#include <winsock.h>
-#include <WinSock2.h>
+#include <winsock2.h>
+#include <windows.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
 
+using namespace std;
 // define our ip address as local host
-#define IP_TARGET "127.0.0.1"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
-// Create Socket Function 
-SOCKET MakeSocket(WORD wPort) {
-	SOCKET sock = (SOCKET)NULL;
+
+// CAboutDlg dialog used for App About
+
+SOCKET MakeSocket(unsigned short Port) {
+	SOCKET sock = INVALID_SOCKET;
 	SOCKADDR_IN Addr = { 0 };
 
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	// if the socket does not exist then throw invalid
 	if (sock == INVALID_SOCKET) {
-		return (SOCKET)NULL;
+		cout << "socket function failed with error = %d\n" << WSAGetLastError();
+		WSACleanup();
+
+		return 1;
 	}
 
 	Addr.sin_family = AF_INET;
-	Addr.sin_port = htons(wPort);
-	Addr.sin_addr.s_addr = inet_addr(IP_TARGET);
+	Addr.sin_port = htons(Port);
+	Addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-	if (bind(sock, (SOCKADDR*)&Addr, sizeof(Addr)) == SOCKET_ERROR)
-	{
+
+	if (bind(sock, (SOCKADDR *)&Addr, sizeof(Addr)) == SOCKET_ERROR) {
+
+		cout << "bind failed with error %u\n " << WSAGetLastError();
 		closesocket(sock);
-		return (SOCKET)NULL;
+		WSACleanup();
+
+		return 1;
 	}
 
+	// if socket is successful
 	return sock;
 }
-
-// CAboutDlg dialog used for App About
 
 class CAboutDlg : public CDialogEx
 {
@@ -185,20 +194,63 @@ HCURSOR CHW4HollandHoDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+CString SendData(SOCKET sock, unsigned short Port) {
+	SOCKADDR_IN SendAddr = { 0 };
+	char buf[1024];
+	CString msgDisplay;
 
+	SendAddr.sin_family = AF_INET;
+	SendAddr.sin_port = htons(Port);
+	SendAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+	fgets(buf, 1024, stdin);
+	msgDisplay = buf;
+	sendto(sock, buf, strlen(buf), 0, (SOCKADDR*)&SendAddr, sizeof(SendAddr));
+	return msgDisplay;
+}
 
 void CHW4HollandHoDlg::OnBnClickedSend()
 {
-	// TODO: Add your control notification handler code here
-	//AfxMessageBox("Hello World!");
+	CString msgDisplay  ;
+	// we can set this var with sendthread to display our sent msgs
+	CString msgRecv = "Hello World";
 
-	// To read text from the chat message control
-	CString chatMessage;
-	GetDlgItemText(IDC_EDIT_CHAT, chatMessage);
-	// Sets the chatMessage to the chatbox and displays it in the read-only
-	SetDlgItemText(IDC_EDIT_CHAT, chatMessage);
-	SetDlgItemText(IDC_EDIT_SHOW, chatMessage);
-	
+	WSADATA wsaData = {0};
+	SOCKET sock; 
+	SOCKADDR_IN RecvAddr;
+
+	// assign var to ports
+	unsigned short DesPort = 3514;
+
+	unsigned short RecPort = 3515; 
+
+	WSAStartup(MAKEWORD(2, 2), &wsaData); 
+
+	sock = MakeSocket(RecPort);
+
+
+	// this needs to send our msg to our chat box and Oates' Chat box
+	// To read text from the chat message control 
+	if (sock) { 
+
+		//HANDLE hThread = CreateThread(NULL, 0, RecvThread, (PVOID)sock, 0, NULL);
+		// 1. type our msg 
+		// 2. click send
+		// 3. send data as our buf 
+
+			msgDisplay = SendData(sock, DesPort);
+			GetDlgItemText(IDC_EDIT_CHAT, msgDisplay);
+		
+		// this read's the users text in and stores it in memory
+		//GetDlgItemText(IDC_EDIT_CHAT, msgDisplay);
+
+		// sets the a message into the empty send field
+		SetDlgItemText(IDC_EDIT_CHAT, msgRecv);
+
+		// set's the chatMessage in the read only text box
+		SetDlgItemText(IDC_EDIT_SHOW, msgDisplay);
+	}
+
 }
 
 
@@ -222,4 +274,9 @@ void CHW4HollandHoDlg::OnEnChangeEditShow()
 	// with the ENM_CHANGE flag ORed into the mask.
 
 	// TODO:  Add your control notification handler code here
+
+	// recv the data from the other chat application and display
+	// also to send the msg that we send needs to be displayed 
+	// 2 things
+
 }
