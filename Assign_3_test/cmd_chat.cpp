@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-#include <string>
 
 // make sure to compile with -lws2_32 for the linker
 using namespace std;
@@ -64,11 +63,13 @@ BOOL SendData(SOCKET sock, unsigned short Port) {
     SendAddr.sin_port = htons(Port);
     SendAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    cout << "Enter Message: ";
-    fgets(buf, 1024, stdin);
-    
-    sendto(sock, buf, strlen(buf), 0, (SOCKADDR *)&SendAddr, sizeof(SendAddr));
+	// test
+	while (1) {
+		cout << ">";
+		fgets(buf, 1024, stdin);
 
+		sendto(sock, buf, strlen(buf), 0, (SOCKADDR*)&SendAddr, sizeof(SendAddr));
+	}
     // if message is successful return true to continue
     return true;
 }
@@ -95,7 +96,7 @@ DWORD WINAPI RecvThread(LPVOID lpParam) {
 
         // mark the end of message string
         buf[iRet] = '\0';
-        cout << inet_ntoa(RecvAddr.sin_addr) << " " << htons(RecvAddr.sin_port) << " " << buf;
+        cout << inet_ntoa(RecvAddr.sin_addr) << " " << htons(RecvAddr.sin_port) << ": " << buf << "\n>";
     }
 
     cout << "Ending Recv Thread... \n";
@@ -152,53 +153,3 @@ int main() {
 
 
 
-
-
-
-
-
-/*
-
-
-int main(){
-    //Declare and initialize variables
-    WSADATA wsaData = {0};
-    int iResult = 0 ;
-    // intialize two ports for send and recv
-    // Source Port set to port 3515
-    WORD wSrcPort = 3515;
-    WORD wDstPort = 3514; 
-
-    //initialize invalid socket
-    SOCKET sock = INVALID_SOCKET;
-    int iFamily = AF_INET;
-    int iType = SOCK_DGRAM;
-    int iProtocol = IPPROTO_UDP;
-
-    // initiates use of Winsock
-    // needed or else socket fails
-    iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (iResult != 0) {
-        wprintf(L"WSAStartup failed: %d\n", iResult);
-        return 1;
-    }
-
-    // create thread to send socket
-    sock = socket(iFamily, iType, iProtocol);
-
-    if (sock == INVALID_SOCKET) {
-        cout << "socket function has failed \n" ; 
-    }
-    else {
-        cout << "function succeeded \n";
-    }
-
-    if (sock){
-        HANDLE hThread = CreateThread(NULL, 0, RecvThread, (PVOID)sock, 0, NULL);
-    }
-
-    return 0;
-}
-
-
-*/
