@@ -12,24 +12,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
-
+#include <cstring>
+#include <thread>
 using namespace std;
-// define our ip address as local host
 
+bool msgEnd = false;
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
 
 // CAboutDlg dialog used for App About
-
 SOCKET MakeSocket(unsigned short Port) {
 	SOCKET sock = INVALID_SOCKET;
 	SOCKADDR_IN Addr = { 0 };
 
 	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (sock == INVALID_SOCKET) {
-		cout << "socket function failed with error = %d\n" << WSAGetLastError();
 		WSACleanup();
 
 		return 1;
@@ -37,12 +36,10 @@ SOCKET MakeSocket(unsigned short Port) {
 
 	Addr.sin_family = AF_INET;
 	Addr.sin_port = htons(Port);
-	Addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
+	//Addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	inet_pton(AF_INET, "127.0.0.1", &Addr.sin_addr.s_addr);
 
 	if (bind(sock, (SOCKADDR *)&Addr, sizeof(Addr)) == SOCKET_ERROR) {
-
-		cout << "bind failed with error %u\n " << WSAGetLastError();
 		closesocket(sock);
 		WSACleanup();
 
@@ -94,6 +91,8 @@ CHW4HollandHoDlg::CHW4HollandHoDlg(CWnd* pParent /*=nullptr*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
+
+
 void CHW4HollandHoDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
@@ -108,13 +107,14 @@ BEGIN_MESSAGE_MAP(CHW4HollandHoDlg, CDialogEx)
 	ON_EN_CHANGE(IDC_EDIT_SHOW, &CHW4HollandHoDlg::OnEnChangeEditShow)
 END_MESSAGE_MAP()
 
-
 // CHW4HollandHoDlg message handlers
 
 BOOL CHW4HollandHoDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
+	AfxBeginThread(listenfunc, this, THREAD_PRIORITY_NORMAL, 0, 0, NULL);
+	
 	// Add "About..." menu item to system menu.
 
 	// IDM_ABOUTBOX must be in the system command range.
@@ -144,6 +144,62 @@ BOOL CHW4HollandHoDlg::OnInitDialog()
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
+
+UINT __cdecl CHW4HollandHoDlg::listenfunc(LPVOID pParam) {
+	ASSERT(pParam != NULL);
+	CHW4HollandHoDlg* getMsg = reinterpret_cast<CHW4HollandHoDlg*>(pParam);
+	return getMsg->disMessage();
+}
+
+UINT __cdecl CHW4HollandHoDlg::disMessage() {
+	SOCKET sock = INVALID_SOCKET;
+	SOCKADDR_IN RecvAddr = { 0 };
+	int iRet;
+	int iRecvSize;
+	CString message;
+	CString chatLog;
+	char buf[1024];
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+	if (sock == INVALID_SOCKET) {
+		WSACleanup();
+
+		return 1;
+	}
+
+	RecvAddr.sin_family = AF_INET;
+	RecvAddr.sin_port = htons(3515);
+	inet_pton(AF_INET, "127.0.0.1", &RecvAddr.sin_addr.s_addr);
+
+	if (bind(sock, (SOCKADDR*)&RecvAddr, sizeof(RecvAddr)) == SOCKET_ERROR) {
+		closesocket(sock);
+		WSACleanup();
+
+		return 1;
+	}
+
+	while (1) {
+		iRecvSize = sizeof(RecvAddr);
+		iRet = recvfrom(sock, buf, 1024, 0, (SOCKADDR*)&RecvAddr, &iRecvSize);
+
+		if (iRet == SOCKET_ERROR) {
+			continue;
+		}
+
+		buf[iRet] = '\0';
+
+		message = CString(buf);
+		GetDlgItemText(IDC_EDIT_SHOW, chatLog);
+		SetDlgItemText(IDC_EDIT_SHOW, chatLog + _T("Oates:") + message + _T("\r\n"));
+
+
+	}
+
+	return 0;
+
+}
+
+
 
 void CHW4HollandHoDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
@@ -194,89 +250,30 @@ HCURSOR CHW4HollandHoDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-CString SendData(SOCKET sock, unsigned short Port) {
-	SOCKADDR_IN SendAddr = { 0 };
-	char buf[1024];
-	CString msgDisplay;
-
-	SendAddr.sin_family = AF_INET;
-	SendAddr.sin_port = htons(Port);
-	SendAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
-	fgets(buf, 1024, stdin);
-	msgDisplay = buf;
-	sendto(sock, buf, strlen(buf), 0, (SOCKADDR*)&SendAddr, sizeof(SendAddr));
-	return msgDisplay;
-}
-
 void CHW4HollandHoDlg::OnBnClickedSend()
 {
-	CString msgDisplay  ;
-	// we can set this var with sendthread to display our sent msgs
-	CString msgRecv = "Hello World";
+	SOCKET sock = INVALID_SOCKET;
+	SOCKADDR_IN Addr = { 0 };
+	SOCKADDR_IN SendAddr = { 0 };
+	char buf[1024];
+	CString message;
+	CString chatLog; 
+	CString init = _T("");
+	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-	WSADATA wsaData = {0};
-	SOCKET sock; 
-	SOCKADDR_IN RecvAddr;
+	SendAddr.sin_family = AF_INET;
+	SendAddr.sin_port = htons(3514);
+	inet_pton(AF_INET, "127.0.0.1", &SendAddr.sin_addr.s_addr);
+	GetDlgItemText(IDC_EDIT_CHAT, message);
+	GetDlgItemText(IDC_EDIT_SHOW, chatLog);
+	SetDlgItemText(IDC_EDIT_SHOW, chatLog + _T("Me: ") + message + _T("\r\n"));
+	SetDlgItemText(IDC_EDIT_CHAT, init);
 
-	// assign var to ports
-	unsigned short DesPort = 3514;
+	strcpy_s(buf, CStringA(message).GetString());
 
-	unsigned short RecPort = 3515; 
-
-	WSAStartup(MAKEWORD(2, 2), &wsaData); 
-
-	sock = MakeSocket(RecPort);
-
-
-	// this needs to send our msg to our chat box and Oates' Chat box
-	// To read text from the chat message control 
-	if (sock) { 
-
-		//HANDLE hThread = CreateThread(NULL, 0, RecvThread, (PVOID)sock, 0, NULL);
-		// 1. type our msg 
-		// 2. click send
-		// 3. send data as our buf 
-
-			msgDisplay = SendData(sock, DesPort);
-			GetDlgItemText(IDC_EDIT_CHAT, msgDisplay);
-		
-		// this read's the users text in and stores it in memory
-		//GetDlgItemText(IDC_EDIT_CHAT, msgDisplay);
-
-		// sets the a message into the empty send field
-		SetDlgItemText(IDC_EDIT_CHAT, msgRecv);
-
-		// set's the chatMessage in the read only text box
-		SetDlgItemText(IDC_EDIT_SHOW, msgDisplay);
-	}
+	sendto(sock, buf, strlen(buf), 0, (SOCKADDR*)&SendAddr, sizeof(SendAddr));
+	
+	closesocket(sock);
 
 }
 
-
-void CHW4HollandHoDlg::OnEnChangeEditChat()
-{
-	// TODO:  If this is a RICHEDIT control, the control will not
-	// send this notification unless you override the CDialogEx::OnInitDialog()
-	// function and call CRichEditCtrl().SetEventMask()
-	// with the ENM_CHANGE flag ORed into the mask.
-
-	// TODO:  Add your control notification handler code here
-
-}	
-
-
-void CHW4HollandHoDlg::OnEnChangeEditShow()
-{
-	// TODO:  If this is a RICHEDIT control, the control will not
-	// send this notification unless you override the CDialogEx::OnInitDialog()
-	// function and call CRichEditCtrl().SetEventMask()
-	// with the ENM_CHANGE flag ORed into the mask.
-
-	// TODO:  Add your control notification handler code here
-
-	// recv the data from the other chat application and display
-	// also to send the msg that we send needs to be displayed 
-	// 2 things
-
-}

@@ -11,7 +11,8 @@ class CHW4HollandHoDlg : public CDialogEx
 // Construction
 public:
 	CHW4HollandHoDlg(CWnd* pParent = nullptr);	// standard constructor
-
+	static UINT __cdecl listenfunc(LPVOID pParam);
+	UINT __cdecl disMessage();
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_HW4_HOLLAND_HO_DIALOG };
