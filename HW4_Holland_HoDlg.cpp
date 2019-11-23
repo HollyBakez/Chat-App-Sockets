@@ -277,3 +277,10 @@ void CHW4HollandHoDlg::OnBnClickedSend()
 
 }
 
+void CHW4HollandHoDlg::OnEnChangeEditChat() {
+
+}
+
+void CHW4HollandHoDlg::OnEnChangeEditShow() {
+
+}
